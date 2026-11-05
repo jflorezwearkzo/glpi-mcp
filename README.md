@@ -62,7 +62,7 @@ Create a **dedicated service user** (e.g. `svc-mcp`) with a profile that has onl
 Requires Node.js 20+.
 
 ```sh
-git clone https://github.com/jflorezwearkzo/glpi-mcp.git
+git clone https://github.com/zylarion/glpi-mcp.git
 cd glpi-mcp
 npm ci        # also builds dist/
 cp .env.example .env   # reference for the variables
