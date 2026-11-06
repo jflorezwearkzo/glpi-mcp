@@ -4,30 +4,62 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  titulo:
+    name: Título en Conventional Commits
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [20, 22]
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Revisar el título del PR
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+        run: |
+          if ! printf '%s' "$TITULO" | grep -Eq '^(feat|fix|security|chore|docs|refactor|test|ci|perf|build|revert|release)(\([a-z0-9._/-]+\))?!?: .+'; then
+            echo "::error::El título debe seguir Conventional Commits, p. ej. 'fix(hlapi): …'"; exit 1
+          fi
+
+  test:
+    name: Tipos, pruebas y build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+      - run: npm run ci
 
   docker:
+    name: Imagen Docker
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: docker build -t glpi-mcp:ci .
+      - name: La imagen arranca y responde /healthz
+        run: |
+          docker run -d --name mcp -p 8000:8000 -e GLPI_URL=https://glpi.invalid -e GLPI_APP_TOKEN=ci -e GLPI_USER_TOKEN=ci -e MCP_AUTH_TOKEN=solo-para-ci glpi-mcp:ci
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/healthz && exit 0; sleep 1; done
+          docker logs mcp; exit 1

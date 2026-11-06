@@ -167,6 +167,7 @@ Ask Claude to run `glpi_server_info` to see the choice.
 npm run dev                         # run from source (tsx)
 npm test                            # vitest, HTTP mocked
 npm run typecheck
+npm run ci                          # typecheck + tests + build (same as CI)
 npx @modelcontextprotocol/inspector node dist/index.js   # try the tools interactively
 ```
 
@@ -183,6 +184,10 @@ src/
     hlapi.ts       /api.php client (OAuth2, version pinning, RSQL)
     factory.ts     auto-detection
 ```
+
+## Contributing
+
+Branches, pull requests and commit conventions: [CONTRIBUTING.md](CONTRIBUTING.md) (Spanish). Report vulnerabilities privately to **security@zylarion.io** — see [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 
