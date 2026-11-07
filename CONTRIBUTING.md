@@ -1,6 +1,6 @@
 # Cómo trabajamos en este repo
 
-Estándar de desarrollo de Zylarion (el mismo de `zylarion/zylarion-web` y `zylarion/baas`).
+Estándar de desarrollo de Zylarion (el mismo de `zylarion-solutions/zylarion-web` y `zylarion-solutions/baas`).
 
 ## Ramas
 
