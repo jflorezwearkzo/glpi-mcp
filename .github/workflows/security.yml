@@ -29,11 +29,28 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+      # CLI de gitleaks (MIT). La action oficial exige licencia paga en organizaciones;
+      # `go install` verifica el módulo contra sum.golang.org, no hace falta fijar checksums.
+      - name: Instalar gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
-          GITLEAKS_ENABLE_SUMMARY: true
+          GITLEAKS_VERSION: v8.30.1
+        run: go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"
+      - name: Buscar secretos
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          ANTES: ${{ github.event.before }}
+        run: |
+          # PR: solo sus commits. Push: lo nuevo. Programado/manual: todo el historial.
+          RANGO=""
+          if [ "$EVENTO" = "pull_request" ]; then RANGO="$BASE..$HEAD"
+          elif [ "$EVENTO" = "push" ] && [ -n "$ANTES" ] && [ "$ANTES" != "0000000000000000000000000000000000000000" ]; then RANGO="$ANTES..$GITHUB_SHA"
+          fi
+          ARGS=(git --redact --no-banner --exit-code 1)
+          if [ -f .gitleaks.toml ]; then ARGS+=(--config .gitleaks.toml); fi
+          if [ -n "$RANGO" ]; then ARGS+=(--log-opts "$RANGO"); fi
+          "$(go env GOPATH)/bin/gitleaks" "${ARGS[@]}"
 
   dependencies:
     name: Dependencias (npm audit)
